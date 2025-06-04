@@ -16,7 +16,10 @@ const client = new TwitterApi({
   accessSecret: process.env.TWITTER_ACCESS_SECRET,
 });
 
-const provider = new ethers.JsonRpcProvider(process.env.ARBITRUM_RPC_URL);
+const provider = new ethers.JsonRpcProvider(process.env.ARBITRUM_RPC_URL, {
+  name: "arbitrum",
+  chainId: 42161
+});
 
 const stakingVaultAbi = require('./abis/SREVStakingVault.json');
 const investorVaultAbi = require('./abis/InvestorVault.json');

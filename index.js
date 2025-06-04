@@ -9,7 +9,6 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// Twitter client setup
 const client = new TwitterApi({
   appKey: process.env.TWITTER_APP_KEY,
   appSecret: process.env.TWITTER_APP_SECRET,
@@ -17,22 +16,22 @@ const client = new TwitterApi({
   accessSecret: process.env.TWITTER_ACCESS_SECRET,
 });
 
-// Ethereum provider
 const provider = new ethers.JsonRpcProvider(process.env.ARBITRUM_RPC_URL);
 
-// Inline ABIs (insert actual ABI arrays from each contract)
-const stakingVaultAbi = [/* ... SREVStakingVault ABI ... */];
-const investorVaultAbi = [/* ... InvestorVault ABI ... */];
-const rewardDistributorAbi = [/* ... TimeBasedRewardDistributor ABI ... */];
-const yieldVaultAbi = [/* ... YieldVault ABI ... */];
+const stakingVaultAbi = require('./abis/SREVStakingVault.json');
+const investorVaultAbi = require('./abis/InvestorVault.json');
+const rewardDistributorAbi = require('./abis/TimeBasedRewardDistributor.json');
+const yieldVaultAbi = require('./abis/YieldVault.json');
+const srvTokenAbi = require('./abis/SRVToken.json');
+const srevTokenAbi = require('./abis/SREVToken.json');
 
-// Contract addresses
 const stakingVault = new ethers.Contract(process.env.SREV_VAULT_ADDRESS, stakingVaultAbi, provider);
 const investorVault = new ethers.Contract(process.env.INVESTOR_VAULT_ADDRESS, investorVaultAbi, provider);
 const rewardDistributor = new ethers.Contract(process.env.REWARD_DISTRIBUTOR_ADDRESS, rewardDistributorAbi, provider);
 const yieldVault = new ethers.Contract(process.env.YIELD_VAULT_ADDRESS, yieldVaultAbi, provider);
+const srvToken = new ethers.Contract(process.env.SRV_TOKEN_ADDRESS, srvTokenAbi, provider);
+const srevToken = new ethers.Contract(process.env.SREV_TOKEN_ADDRESS, srevTokenAbi, provider);
 
-// RSS setup
 const parser = new Parser();
 
 async function fetchRwaHeadline() {
@@ -54,17 +53,17 @@ async function fetchStats() {
       investorVault.getVaultTotals(),
       rewardDistributor.viewRewardPoolBalance(),
       yieldVault.getVaultBalance(),
-      srevToken.totalSupply()  // SREV is an ERC20 token, this is safe
+      srevToken.totalSupply()
     ]);
 
     return {
-      buybackTotal: `$${parseFloat(process.env.MANUAL_BUYBACK_TOTAL).toFixed(2)}`,
+      buybackTotal: `$${parseFloat(process.env.MANUAL_BUYBACK_TOTAL || 0).toFixed(2)}`,
       srevSupply: `${ethers.formatUnits(srevTotal, 18)} SREV in circulation`,
       vaultUSDC: `$${ethers.formatUnits(vaultTotals.totalUSDC, 6)} in Investor Vault`,
       rewardPoolUSDC: `$${ethers.formatUnits(rewardPool, 6)} in SREV rewards`,
       rwaFeesUSDC: `$${ethers.formatUnits(feesAccumulated, 6)} in Yield Vault`,
       raw: {
-        buybacks: parseFloat(process.env.MANUAL_BUYBACK_TOTAL),
+        buybacks: parseFloat(process.env.MANUAL_BUYBACK_TOTAL || 0),
         vault: parseFloat(ethers.formatUnits(vaultTotals.totalUSDC, 6)),
         rwa: parseFloat(ethers.formatUnits(feesAccumulated, 6))
       }
@@ -77,18 +76,17 @@ async function fetchStats() {
 
 async function generateTweet(stats) {
   const messages = [
-    `SREV vault earning. ${stats.stakedSRV} earning USDC. Rewards: ${stats.rewardPoolUSDC}.`,
-    `Investor layer: ${stats.vaultUSDC} deployed. RWA returns: ${stats.rwaFeesUSDC}.`,
-    `SRV buybacks YTD: ${stats.buybackTotal}. Both vaults funded weekly.`,
-    `Retail stakers + DAO investors = real yield loop. 🔄`,
-    `SREV + RWA layers in sync. Real rewards paid.`,
-    `Buyback + vault strategy → ${stats.buybackTotal} recirculated.`
+    `SREV supply: ${stats.srevSupply}\n${stats.rewardPoolUSDC} in USDC rewards`,
+    `Investor vault now holds ${stats.vaultUSDC}. RWA system streaming ${stats.rwaFeesUSDC}.`,
+    `SRV buybacks: ${stats.buybackTotal}. Vaults funded. Yield flowing.`,
+    `Service Coin: staking + real world business = ${stats.rewardPoolUSDC} in rewards.`
   ];
 
-  if (Math.random() < 0.4) {
+  if (Math.random() < 0.3) {
     const rwaNews = await fetchRwaHeadline();
     if (rwaNews) return { text: rwaNews, stats };
   }
+
   const message = messages[Math.floor(Math.random() * messages.length)];
   return { text: message, stats };
 }
@@ -148,14 +146,17 @@ const tweet = async () => {
     } else {
       await client.v2.tweet(text);
     }
-    console.log("Tweeted:", text);
+    console.log("✅ Tweeted:", text);
   } catch (e) {
-    console.error("Intern error:", e);
+    console.error("❌ Tweet failed:", e);
   }
 };
 
 cron.schedule('0 */8 * * *', () => {
+  console.log("🔁 Running scheduled tweet...");
   tweet();
 });
 
 tweet();
+
+console.log("✅ Intern bot started and cron is scheduled.");

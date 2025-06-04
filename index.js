@@ -2,7 +2,7 @@
 
 const { TwitterApi } = require('twitter-api-v2');
 const cron = require('node-cron');
-const { ethers } = require('ethers');
+const { ethers, getAddress } = require('ethers'); // Import getAddress
 const Parser = require('rss-parser');
 const axios = require('axios');
 const fs = require('fs');
@@ -36,12 +36,22 @@ const srvTokenAbi = require('./abis/SRVToken.json');
 const srevTokenAbi = require('./abis/SREVToken.json');
 
 // Contract instances
-const stakingVault = new ethers.Contract(process.env.SREV_VAULT_ADDRESS, stakingVaultAbi, provider);
-const investorVault = new ethers.Contract(process.env.INVESTOR_VAULT_ADDRESS, investorVaultAbi, provider);
-const rewardDistributor = new ethers.Contract(process.env.REWARD_DISTRIBUTOR_ADDRESS, rewardDistributorAbi, provider);
-const yieldVault = new ethers.Contract(process.env.YIELD_VAULT_ADDRESS, yieldVaultAbi, provider);
-const srvToken = new ethers.Contract(process.env.SRV_TOKEN_ADDRESS, srvTokenAbi, provider);
-const srevToken = new ethers.Contract(process.env.SREV_TOKEN_ADDRESS, srevTokenAbi, provider);
+// Wrap addresses with getAddress to ensure they are valid and checksummed
+let stakingVault, investorVault, rewardDistributor, yieldVault, srvToken, srevToken;
+
+try {
+  stakingVault = new ethers.Contract(getAddress(process.env.SREV_VAULT_ADDRESS), stakingVaultAbi, provider);
+  investorVault = new ethers.Contract(getAddress(process.env.INVESTOR_VAULT_ADDRESS), investorVaultAbi, provider);
+  rewardDistributor = new ethers.Contract(getAddress(process.env.REWARD_DISTRIBUTOR_ADDRESS), rewardDistributorAbi, provider);
+  yieldVault = new ethers.Contract(getAddress(process.env.YIELD_VAULT_ADDRESS), yieldVaultAbi, provider);
+  srvToken = new ethers.Contract(getAddress(process.env.SRV_TOKEN_ADDRESS), srvTokenAbi, provider);
+  srevToken = new ethers.Contract(getAddress(process.env.SREV_TOKEN_ADDRESS), srevTokenAbi, provider);
+} catch (error) {
+  console.error("Error initializing contracts. Check your .env addresses:", error.message);
+  // If addresses are invalid, the bot likely can't function, so we might exit or prevent further operations.
+  process.exit(1); // Exit if contract addresses are fundamentally wrong.
+}
+
 
 // RSS Parser instance
 const parser = new Parser();
@@ -72,6 +82,11 @@ async function fetchRwaHeadline() {
  * @returns {Promise<object|null>} An object containing formatted stats and raw values, or null on error.
  */
 async function fetchStats() {
+  // Ensure contracts are initialized before trying to use them
+  if (!investorVault || !rewardDistributor || !yieldVault || !srevToken) {
+      console.error("Contracts not initialized. Cannot fetch stats.");
+      return null;
+  }
   try {
     const [vaultTotals, rewardPool, feesAccumulated, srevTotal] = await Promise.all([
       investorVault.getVaultTotals(),
@@ -236,7 +251,11 @@ cron.schedule('0 */8 * * *', () => {
   tweet();
 });
 
-// Run the tweet function once on startup
-tweet();
+// Run the tweet function once on startup only if contracts were initialized
+if (investorVault) { // Check if one of the contracts is initialized as a proxy for all
+    tweet();
+} else {
+    console.log("Skipping initial tweet due to contract initialization failure.");
+}
 
 console.log("✅ Intern bot started and cron is scheduled.");

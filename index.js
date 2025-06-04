@@ -35,13 +35,15 @@ const yieldVaultAbi = require('./abis/YieldVault.json');
 const srvTokenAbi = require('./abis/SRVToken.json');
 const srevTokenAbi = require('./abis/SREVToken.json');
 
-// Contract instances
-const stakingVault = new ethers.Contract(process.env.SREV_VAULT_ADDRESS, stakingVaultAbi, provider);
-const investorVault = new ethers.Contract(process.env.INVESTOR_VAULT_ADDRESS, investorVaultAbi, provider);
-const rewardDistributor = new ethers.Contract(process.env.REWARD_DISTRIBUTOR_ADDRESS, rewardDistributorAbi, provider);
-const yieldVault = new ethers.Contract(process.env.YIELD_VAULT_ADDRESS, yieldVaultAbi, provider);
-const srvToken = new ethers.Contract(process.env.SRV_TOKEN_ADDRESS, srvTokenAbi, provider);
-const srevToken = new ethers.Contract(process.env.SREV_TOKEN_ADDRESS, srevTokenAbi, provider);
+const { getAddress } = ethers;
+
+// Contract instances with address validation
+const stakingVault = new ethers.Contract(getAddress(process.env.SREV_VAULT_ADDRESS), stakingVaultAbi, provider);
+const investorVault = new ethers.Contract(getAddress(process.env.INVESTOR_VAULT_ADDRESS), investorVaultAbi, provider);
+const rewardDistributor = new ethers.Contract(getAddress(process.env.REWARD_DISTRIBUTOR_ADDRESS), rewardDistributorAbi, provider);
+const yieldVault = new ethers.Contract(getAddress(process.env.YIELD_VAULT_ADDRESS), yieldVaultAbi, provider);
+const srvToken = new ethers.Contract(getAddress(process.env.SRV_TOKEN_ADDRESS), srvTokenAbi, provider);
+const srevToken = new ethers.Contract(getAddress(process.env.SREV_TOKEN_ADDRESS), srevTokenAbi, provider);
 
 // RSS Parser instance
 const parser = new Parser();

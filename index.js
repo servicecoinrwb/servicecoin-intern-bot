@@ -50,18 +50,18 @@ async function fetchRwaHeadline() {
 
 async function fetchStats() {
   try {
-    const [totalStaked, vaultTotals, rewardPool, feesAccumulated] = await Promise.all([
-      stakingVault.totalSupply(),
+    const [vaultTotals, rewardPool, feesAccumulated, srevTotal] = await Promise.all([
       investorVault.getVaultTotals(),
       rewardDistributor.viewRewardPoolBalance(),
-      yieldVault.getVaultBalance()
+      yieldVault.getVaultBalance(),
+      srevToken.totalSupply()  // SREV is an ERC20 token, this is safe
     ]);
 
     return {
       buybackTotal: `$${parseFloat(process.env.MANUAL_BUYBACK_TOTAL).toFixed(2)}`,
-      stakedSRV: `${ethers.formatUnits(totalStaked, 18)} SRV staked`,
+      srevSupply: `${ethers.formatUnits(srevTotal, 18)} SREV in circulation`,
       vaultUSDC: `$${ethers.formatUnits(vaultTotals.totalUSDC, 6)} in Investor Vault`,
-      rewardPoolUSDC: `$${ethers.formatUnits(rewardPool, 6)} in rewards`,
+      rewardPoolUSDC: `$${ethers.formatUnits(rewardPool, 6)} in SREV rewards`,
       rwaFeesUSDC: `$${ethers.formatUnits(feesAccumulated, 6)} in Yield Vault`,
       raw: {
         buybacks: parseFloat(process.env.MANUAL_BUYBACK_TOTAL),

@@ -17,8 +17,8 @@ const client = new TwitterApi({
 });
 
 const provider = new ethers.JsonRpcProvider(process.env.ARBITRUM_RPC_URL, {
-  name: "arbitrum",
-  chainId: 42161
+  name: 'arbitrum',
+  chainId: 42161,
 });
 
 const stakingVaultAbi = require('./abis/SREVStakingVault.json');
@@ -40,12 +40,14 @@ const parser = new Parser();
 async function fetchRwaHeadline() {
   try {
     const feed = await parser.parseURL('https://rwa.xyz/feed.xml');
-    const items = feed.items.filter(i => i.title.toLowerCase().includes('rwa') || i.title.toLowerCase().includes('token'));
+    const items = feed.items.filter(i =>
+      i.title.toLowerCase().includes('rwa') || i.title.toLowerCase().includes('token')
+    );
     if (!items.length) return null;
     const headline = items[Math.floor(Math.random() * items.length)];
     return `RWA news: ${headline.title} (${headline.link})`;
   } catch (err) {
-    console.error("Failed to fetch RWA news:", err);
+    console.error("Failed to fetch RWA news:", err.message);
     return null;
   }
 }
@@ -72,7 +74,7 @@ async function fetchStats() {
       }
     };
   } catch (e) {
-    console.error("Error fetching contract data:", e);
+    console.error("Error fetching contract data:", e.message);
     return null;
   }
 }
@@ -116,7 +118,9 @@ async function generateChartImage(rawStats) {
     }
   };
 
-  const chartUrl = `https://quickchart.io/chart?width=500&height=300&c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
+  const chartUrl = `https://quickchart.io/chart?width=500&height=300&c=${encodeURIComponent(
+    JSON.stringify(chartConfig)
+  )}`;
   const imagePath = path.resolve(__dirname, 'images/auto_chart.png');
   try {
     const response = await axios.get(chartUrl, { responseType: 'stream' });
@@ -127,7 +131,7 @@ async function generateChartImage(rawStats) {
       writer.on('error', reject);
     });
   } catch (e) {
-    console.error("Chart image generation failed:", e);
+    console.error("Chart image generation failed:", e.message);
     return null;
   }
 }
@@ -140,7 +144,11 @@ const tweet = async () => {
   let mediaId = null;
   const imagePath = await generateChartImage(rawStats.raw);
   if (imagePath) {
-    mediaId = await client.v1.uploadMedia(imagePath);
+    try {
+      mediaId = await client.v1.uploadMedia(imagePath);
+    } catch (err) {
+      console.error("Failed to upload chart image:", err.message);
+    }
   }
 
   try {
@@ -151,7 +159,7 @@ const tweet = async () => {
     }
     console.log("✅ Tweeted:", text);
   } catch (e) {
-    console.error("❌ Tweet failed:", e);
+    console.error("❌ Tweet failed:", e.message);
   }
 };
 
@@ -161,5 +169,5 @@ cron.schedule('0 */8 * * *', () => {
 });
 
 tweet();
-
 console.log("✅ Intern bot started and cron is scheduled.");
+

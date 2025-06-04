@@ -18,9 +18,19 @@ const client = new TwitterApi({
 
 const provider = new ethers.JsonRpcProvider(process.env.ARBITRUM_RPC_URL, {
   name: 'arbitrum',
+<<<<<<< HEAD
   chainId: 42161,
 });
 
+=======
+  chainId: 42161
+});
+
+// Disable ENS resolution (since Arbitrum does not support it)
+provider.resolveName = async () => null;
+provider.lookupAddress = async () => null;
+
+>>>>>>> 0ceca1f (Fix ENS resolution error on Arbitrum)
 const stakingVaultAbi = require('./abis/SREVStakingVault.json');
 const investorVaultAbi = require('./abis/InvestorVault.json');
 const rewardDistributorAbi = require('./abis/TimeBasedRewardDistributor.json');
@@ -159,7 +169,11 @@ const tweet = async () => {
     }
     console.log("✅ Tweeted:", text);
   } catch (e) {
+<<<<<<< HEAD
     console.error("❌ Tweet failed:", e.message);
+=======
+    console.error("❌ Tweet failed:", e);
+>>>>>>> 0ceca1f (Fix ENS resolution error on Arbitrum)
   }
 };
 
@@ -169,5 +183,10 @@ cron.schedule('0 */8 * * *', () => {
 });
 
 tweet();
+<<<<<<< HEAD
 console.log("✅ Intern bot started and cron is scheduled.");
 
+=======
+
+console.log("✅ Intern bot started and cron is scheduled.");
+>>>>>>> 0ceca1f (Fix ENS resolution error on Arbitrum)
